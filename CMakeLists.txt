@@ -20,7 +20,7 @@ CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/include/lockfree_config.h.in ${CMAKE_
 ModuleImport("dmlog" "thirdparty/dmlog")
 LibImport("lockfree" "src/lockfree_module")
 ExeImport("test" "lockfree;dmlog")
-
+ExeImport("examples" "lockfree;dmlog")
 #ADD_CUSTOM_COMMAND(
 #TARGET lockfreetest
 #PRE_BUILD
