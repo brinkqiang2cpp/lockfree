@@ -1,107 +1,101 @@
-# Copyright 2016-2018 Peter Dimov
-# Distributed under the Boost Software License, Version 1.0.
-# (See accompanying file LICENSE_1_0.txt or copy at http://boost.org/LICENSE_1_0.txt)
-
-language: cpp
+# Build matrix / environment variable are explained on:
+# http://about.travis-ci.org/docs/user/build-configuration/
+# This file can be validated on: http://lint.travis-ci.org/
 
 sudo: false
-
-branches:
-  only:
-    - master
-    - develop
-    - /feature\/.*/
-
-env:
-  matrix:
-    - BOGUS_JOB=true
+dist: trusty
+language: cpp
 
 matrix:
+    include:
+      -   os: linux
+          compiler: gcc
+          env: 
+            - BUILD_TYPE=relwithdebinfo
+            - GCC_VERSION=7
+            - CC=gcc-7
+            - CXX=g++-7
+          addons:
+            apt:
+              # List of whitelisted in travis packages for ubuntu-trusty can be found here:
+              #   https://github.com/travis-ci/apt-package-whitelist/blob/master/ubuntu-trusty
+              # List of whitelisted in travis apt-sources:
+              #   https://github.com/travis-ci/apt-source-whitelist/blob/master/ubuntu.json
+              sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-5.0']
+              packages: ['cmake', 'autoconf', 'automake', 'gcc-7', 'g++-7', 'clang-5.0']
 
-  exclude:
-    - env: BOGUS_JOB=true
+      #-   os: osx
+      #    compiler: gcc
+      #    env: 
+      #      - BUILD_TYPE=relwithdebinfo
+      #    addons:
+      #      apt:
+      #        sources: 
+      #        packages: ['cmake', 'autoconf', 'automake', 'gcc-7', 'g++-7', 'clang-5.0']
 
-  include:
-    - os: linux
-      compiler: g++
-      env: TOOLSET=gcc CXXSTD=03,11
-
-    - os: linux
-      compiler: g++-5
-      env: TOOLSET=gcc CXXSTD=03,11,14,1z
-      addons:
-        apt:
-          packages:
-            - g++-5
-          sources:
-            - ubuntu-toolchain-r-test
-
-    - os: linux
-      compiler: g++-6
-      env: TOOLSET=gcc CXXSTD=03,11,14,1z
-      addons:
-        apt:
-          packages:
-            - g++-6
-          sources:
-            - ubuntu-toolchain-r-test
-
-    - os: linux
-      compiler: g++-7
-      env: TOOLSET=gcc CXXSTD=03,11,14,17
-      addons:
-        apt:
-          packages:
-            - g++-7
-          sources:
-            - ubuntu-toolchain-r-test
-
-    - os: linux
-      compiler: g++-8
-      env: TOOLSET=gcc CXXSTD=03,11,14,17
-      addons:
-        apt:
-          packages:
-            - g++-8
-          sources:
-            - ubuntu-toolchain-r-test
-
-    - os: linux
-      compiler: clang++
-      env: TOOLSET=clang CXXSTD=03,11,14,1z
-
-    - os: linux
-      compiler: clang++-libc++
-      env: TOOLSET=clang CXXSTD=03,11,14,1z
-      addons:
-        apt:
-          packages:
-            - libc++-dev
-
-    - os: osx
-      compiler: clang++
-      env: TOOLSET=clang CXXSTD=03,11,14,1z
 
 install:
-  - BOOST_BRANCH=develop && [ "$TRAVIS_BRANCH" == "master" ] && BOOST_BRANCH=master || true
-  - cd ..
-  - git clone -b $BOOST_BRANCH https://github.com/boostorg/boost.git boost-root
-  - cd boost-root
-  - git submodule update --init tools/boost_install
-  - git submodule update --init libs/headers
-  - git submodule update --init tools/build
-  - git submodule update --init libs/config
-  - git submodule update --init tools/boostdep
-  - cp -r $TRAVIS_BUILD_DIR/* libs/lockfree
-  - python tools/boostdep/depinst/depinst.py lockfree
-  - ./bootstrap.sh
-  - ./b2 headers
+  - cmake --version
+
+before_install:
+  - |
+    if [ "$TRAVIS_OS_NAME" == "osx" ] ; then
+        #brew update
+        #brew install libtool
+        echo osx
+    fi
+    if [ "$TRAVIS_OS_NAME" == "linux" ] ; then
+        echo linux
+    fi
+
+before_script:
+  - |
+    if [ "$TRAVIS_OS_NAME" == "osx" ] ; then
+        #glibtoolize
+        #aclocal
+        #autoheader
+        #autoconf
+        #automake --add-missing
+        #sh configure
+        echo osx
+    fi
+    if [ "$TRAVIS_OS_NAME" == "linux" ] ; then
+        #libtoolize
+        #aclocal
+        #autoheader
+        #autoconf
+        #automake --add-missing
+        #sh configure
+        echo linux
+    fi
 
 script:
-  - |-
-    echo "using $TOOLSET : : $TRAVIS_COMPILER ;" > ~/user-config.jam
-  - ./b2 -j3 libs/lockfree/test toolset=$TOOLSET cxxstd=$CXXSTD
+  - mkdir -p build && pushd build
+  - cmake .. -DCMAKE_BUILD_TYPE=$BUILD_TYPE
+  - cmake --build .
+  - popd
 
-notifications:
-  email:
-    on_success: always
+after_success:
+  - echo success
+
+after_failure:
+  - echo failure
+
+before_deploy:
+  - git tag "$(date +'%Y%m%d%H%M%S')-$(git log --format=%h -1)"
+  - echo deploy start
+
+deploy:
+  provider: releases
+  api_key:
+    secure: $GITHUB_ACCESS_TOKEN
+  file: bin/lockfreetest
+  skip_cleanup: true
+  on:
+    branch: master
+    tags: false
+    all_branches: true
+    condition: $TRAVIS_OS_NAME == "linux" && $TRAVIS_COMMIT_MESSAGE == "BUILD_DEPLOY" && $BUILD_TYPE == "RelWithDebInfo"
+
+after_deploy:
+  - echo deploy end
