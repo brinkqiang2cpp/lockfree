@@ -15,12 +15,10 @@ SET(LOCKFREE_VERSION "${LOCKFREE_VERSION_MAJOR}.${LOCKFREE_VERSION_MINOR}.${LOCK
 MESSAGE(STATUS "VERSION: ${LOCKFREE_VERSION}")
 
 OPTION(USE_LOCKFREE "use lockfree" OFF)
-CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/include/lockfree_config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/include/lockfree_config.h)
 
-ModuleImport("dmlog" "thirdparty/dmlog")
-LibImport("lockfree" "src/lockfree_module")
-ExeImport("test" "lockfree;dmlog")
-ExeImport("examples" "lockfree;dmlog")
+ModuleInclude("" "")
+ExeImport("test" "")
+ExeImport("examples" "")
 #ADD_CUSTOM_COMMAND(
 #TARGET lockfreetest
 #PRE_BUILD
